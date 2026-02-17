@@ -1,3 +1,7 @@
 from django.contrib import admin
+from .models import EVVehicle, ChargingStation, TripHistory
 
-# Register your models here.
+
+admin.site.register(EVVehicle)
+admin.site.register(ChargingStation)
+admin.site.register(TripHistory)
