@@ -161,8 +161,10 @@ def astar_state_search(
         if current_node != start_node and current_node != end_node:
             charger_power = get_charger_power(current_node)
 
-            energy_needed = (max_range - battery_left) / vehicle_efficiency
-            charging_time = (energy_needed / charger_power) * 60
+            energy_needed_kwh = (max_range - battery_left) / vehicle_efficiency
+            charging_hours = energy_needed_kwh / charger_power
+            charging_time = charging_hours * 60
+
 
             new_cost = actual_cost + charging_time
             new_battery = max_range

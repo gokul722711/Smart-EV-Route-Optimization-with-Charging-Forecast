@@ -22,7 +22,6 @@ def haversine_distance(lat1, lon1, lat2, lon2):
 
     return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
-
 def optimize_route(
     source_coords: tuple,
     destination_coords: tuple,
@@ -73,7 +72,47 @@ def optimize_route(
         heuristic=heuristic
     )
 
+    # 🚨 No feasible path
+    if not result:
+        return {"error": "No feasible route found"}
+
+    state_path = result["path"]
+    total_cost = result["total_cost"]
+
+    route_segments = []
+    charging_stops = []
+
+    for i in range(len(state_path) - 1):
+        from_node, from_battery = state_path[i]
+        to_node, to_battery = state_path[i + 1]
+
+        # 🔋 Charging event (same node, battery increased)
+        if from_node == to_node and to_battery > from_battery:
+            charging_stops.append({
+                "node": from_node,
+                "battery_after_charge": round(to_battery, 2)
+            })
+            continue
+
+        # 🚗 Travel segment
+        from_coords = nodes[from_node]
+        to_coords = nodes[to_node]
+
+        full_route = get_route(from_coords, to_coords)
+
+        route_segments.append({
+            "from": from_node,
+            "to": to_node,
+            "distance_km": round(full_route["distance_km"], 2),
+            "duration_min": round(full_route["duration_min"], 2),
+            "geometry": full_route.get("geometry")
+        })
+
+
     return {
-        "state_based_result": result,
-        "initial_battery_km": round(initial_battery, 2)
+        "total_time_min": round(total_cost, 2),
+        "initial_battery_km": round(initial_battery, 2),
+        "path": state_path,
+        "charging_stops": charging_stops,
+        "route_segments": route_segments
     }

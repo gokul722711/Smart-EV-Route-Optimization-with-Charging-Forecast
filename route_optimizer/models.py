@@ -42,6 +42,7 @@ class RouteCache(models.Model):
 
     distance_km = models.FloatField()
     duration_min = models.FloatField()
+    geometry = models.JSONField(default=dict)   # 🔥 Add this
 
     class Meta:
         unique_together = (
@@ -50,3 +51,5 @@ class RouteCache(models.Model):
             "dest_lon",
             "dest_lat",
         )
+
+
