@@ -33,3 +33,20 @@ class TripHistory(models.Model):
 
     def __str__(self):
         return f"{self.source} → {self.destination}"
+
+class RouteCache(models.Model):
+    source_lon = models.FloatField()
+    source_lat = models.FloatField()
+    dest_lon = models.FloatField()
+    dest_lat = models.FloatField()
+
+    distance_km = models.FloatField()
+    duration_min = models.FloatField()
+
+    class Meta:
+        unique_together = (
+            "source_lon",
+            "source_lat",
+            "dest_lon",
+            "dest_lat",
+        )
