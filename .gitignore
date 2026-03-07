@@ -1,24 +1,46 @@
+# -------------------------
 # Python
+# -------------------------
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
-*.sqlite3
+*.py[cod]
+*$py.class
+
+# Logs
 *.log
-*.pot
 
+# SQLite database
+*.sqlite3
+
+# -------------------------
 # Django
-*.env
+# -------------------------
+.env
+.env.*
 db.sqlite3
-/media
-/staticfiles
+/media/
+/staticfiles/
 
-# Virtual environment
+# -------------------------
+# Virtual Environments
+# -------------------------
 venv/
+env/
+.venv/
 
-# VS Code
+# -------------------------
+# OS files
+# -------------------------
+.DS_Store
+Thumbs.db
+
+# -------------------------
+# IDE
+# -------------------------
 .vscode/
+.idea/
 
-# Node (future frontend)
+# -------------------------
+# Node / Frontend
+# -------------------------
 node_modules/
 dist/
