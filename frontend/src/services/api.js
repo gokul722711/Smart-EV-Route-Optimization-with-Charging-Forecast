@@ -8,3 +8,18 @@ export const optimizeRoute = async (data) => {
   const response = await API.post('/optimize-route/', data);
   return response.data;
 };
+
+export const getVehicles = async () => {
+  const response = await API.get('/vehicles/');
+  return response.data;
+};
+
+export const getStations = async () => {
+  const response = await API.get('/stations/');
+  return response.data;
+};
+
+export const getTripHistory = async () => {
+  const response = await API.get('/trips/');
+  return response.data;
+};

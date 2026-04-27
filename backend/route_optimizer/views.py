@@ -1,8 +1,15 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.generics import ListAPIView
 
-from .serializers import OptimizeRouteSerializer
+from .models import EVVehicle, ChargingStation, TripHistory
+from .serializers import (
+    OptimizeRouteSerializer,
+    EVVehicleSerializer,
+    ChargingStationSerializer,
+    TripHistorySerializer,
+)
 from route_optimizer.services.route_optimizer_service import optimize_route
 
 
@@ -24,6 +31,20 @@ class OptimizeRouteView(APIView):
                 battery_percentage=data["battery_percentage"],
             )
 
+            # If route was found successfully, save to trip history
+            if "error" not in result:
+                total_distance = sum(
+                    seg.get("distance_km", 0)
+                    for seg in result.get("route_segments", [])
+                )
+                TripHistory.objects.create(
+                    source=f"{data['source_lat']}, {data['source_lon']}",
+                    destination=f"{data['destination_lat']}, {data['destination_lon']}",
+                    distance_km=round(total_distance, 2),
+                    battery_used_percentage=data["battery_percentage"],
+                    charging_stops=result.get("charging_stops", []),
+                )
+
             return Response(result, status=status.HTTP_200_OK)
 
         except Exception as e:
@@ -31,3 +52,21 @@ class OptimizeRouteView(APIView):
                 {"error": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+
+class VehicleListView(ListAPIView):
+    """List all available EV vehicles."""
+    queryset = EVVehicle.objects.all()
+    serializer_class = EVVehicleSerializer
+
+
+class ChargingStationListView(ListAPIView):
+    """List all charging stations."""
+    queryset = ChargingStation.objects.all()
+    serializer_class = ChargingStationSerializer
+
+
+class TripHistoryListView(ListAPIView):
+    """List trip history, most recent first."""
+    queryset = TripHistory.objects.all().order_by('-created_at')
+    serializer_class = TripHistorySerializer

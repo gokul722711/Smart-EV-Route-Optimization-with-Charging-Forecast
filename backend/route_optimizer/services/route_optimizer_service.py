@@ -72,7 +72,7 @@ def optimize_route(
         heuristic=heuristic
     )
 
-    # 🚨 No feasible path
+    # No feasible path
     if not result:
         return {"error": "No feasible route found"}
 
@@ -86,7 +86,7 @@ def optimize_route(
         from_node, from_battery = state_path[i]
         to_node, to_battery = state_path[i + 1]
 
-        # 🔋 Charging event (same node, battery increased)
+        # Charging event (same node, battery increased)
         if from_node == to_node and to_battery > from_battery:
             charging_stops.append({
                 "node": from_node,
@@ -94,7 +94,7 @@ def optimize_route(
             })
             continue
 
-        # 🚗 Travel segment
+        # Travel segment
         from_coords = nodes[from_node]
         to_coords = nodes[to_node]
 

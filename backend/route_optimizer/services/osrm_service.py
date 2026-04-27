@@ -20,11 +20,11 @@ def get_route(source_coords: tuple, destination_coords: tuple):
 
     cache_key = (source_lon, source_lat, dest_lon, dest_lat)
 
-    # 1️⃣ In-memory cache
+    # In-memory cache
     if cache_key in _route_cache:
         return _route_cache[cache_key]
 
-    # 2️⃣ DB persistent cache
+    # DB persistent cache
     cached = RouteCache.objects.filter(
         source_lon=source_lon,
         source_lat=source_lat,
@@ -41,7 +41,7 @@ def get_route(source_coords: tuple, destination_coords: tuple):
         _route_cache[cache_key] = result
         return result
 
-    # 3️⃣ Call OSRM API
+    # Call OSRM API
     source = f"{source_lon},{source_lat}"
     destination = f"{dest_lon},{dest_lat}"
 
@@ -65,7 +65,7 @@ def get_route(source_coords: tuple, destination_coords: tuple):
         "geometry": route["geometry"],
     }
 
-    # 4️⃣ Save to DB persistent cache
+    # Save to DB persistent cache
     RouteCache.objects.get_or_create(
         source_lon=source_lon,
         source_lat=source_lat,
@@ -78,7 +78,7 @@ def get_route(source_coords: tuple, destination_coords: tuple):
         }
     )
 
-    # 5️⃣ Save to memory cache
+    # Save to memory cache
     _route_cache[cache_key] = result
 
     return result
