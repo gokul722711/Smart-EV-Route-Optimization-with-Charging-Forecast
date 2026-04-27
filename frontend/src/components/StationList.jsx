@@ -53,7 +53,7 @@ export default function StationList({ onError }) {
 
       {stations.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-state-icon">🔌</div>
+          <div className="empty-state-icon">CS</div>
           <h3 className="empty-state-title">No charging stations</h3>
           <p className="empty-state-text">
             Charging stations can be added through the Django admin panel.
@@ -66,7 +66,7 @@ export default function StationList({ onError }) {
               <div className="data-card-header">
                 <div>
                   <div className="data-card-title">
-                    {station.fast_charger ? '⚡' : '🔌'} {station.name}
+                    {station.name}
                   </div>
                   <div className="data-card-meta">
                     {station.latitude.toFixed(4)}°N, {station.longitude.toFixed(4)}°E

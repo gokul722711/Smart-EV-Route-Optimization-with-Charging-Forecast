@@ -25,7 +25,7 @@ function Toast({ error, onClose }) {
 
   return (
     <div className={`error-toast ${leaving ? 'leaving' : ''}`}>
-      <span className="error-toast-icon">⚠️</span>
+      <span className="error-toast-icon">!</span>
       <div className="error-toast-body">
         <div className="error-toast-title">Error</div>
         <div className="error-toast-message">{error.message}</div>

@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { getTripHistory } from '../services/api';
+import { getTripHistory, clearTripHistory } from '../services/api';
 
 export default function TripHistory({ onError }) {
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [clearing, setClearing] = useState(false);
 
   useEffect(() => {
     const fetchTrips = async () => {
@@ -19,6 +20,21 @@ export default function TripHistory({ onError }) {
     };
     fetchTrips();
   }, [onError]);
+
+  const handleClearHistory = async () => {
+    const shouldClear = window.confirm('Clear all trip history entries? This action cannot be undone.');
+    if (!shouldClear) return;
+
+    try {
+      setClearing(true);
+      await clearTripHistory();
+      setTrips([]);
+    } catch (err) {
+      onError('Failed to clear trip history. Please try again.');
+    } finally {
+      setClearing(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -43,17 +59,31 @@ export default function TripHistory({ onError }) {
   return (
     <div className="page-view">
       <div className="page-header">
-        <h1 className="page-title">Trip History</h1>
-        <p className="page-subtitle">
-          {trips.length > 0
-            ? `${trips.length} trip${trips.length > 1 ? 's' : ''} recorded`
-            : 'No trips yet'}
-        </p>
+        <div className="page-header-row">
+          <div>
+            <h1 className="page-title">Trip History</h1>
+            <p className="page-subtitle">
+              {trips.length > 0
+                ? `${trips.length} trip${trips.length > 1 ? 's' : ''} recorded`
+                : 'No trips yet'}
+            </p>
+          </div>
+          {trips.length > 0 && (
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={handleClearHistory}
+              disabled={clearing}
+            >
+              {clearing ? 'Clearing...' : 'Clear History'}
+            </button>
+          )}
+        </div>
       </div>
 
       {trips.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-state-icon">🛣️</div>
+          <div className="empty-state-icon">TR</div>
           <h3 className="empty-state-title">No trips recorded yet</h3>
           <p className="empty-state-text">
             Plan a route using the Route Planner to see your trip history here.
@@ -66,7 +96,7 @@ export default function TripHistory({ onError }) {
               <div className="data-card-header">
                 <div>
                   <div className="data-card-title">
-                    📍 {formatCoords(trip.source)} → {formatCoords(trip.destination)}
+                    {formatCoords(trip.source)} → {formatCoords(trip.destination)}
                   </div>
                   <div className="data-card-meta">
                     {formatDate(trip.created_at)}

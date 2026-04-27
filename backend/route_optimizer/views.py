@@ -70,3 +70,11 @@ class TripHistoryListView(ListAPIView):
     """List trip history, most recent first."""
     queryset = TripHistory.objects.all().order_by('-created_at')
     serializer_class = TripHistorySerializer
+
+
+class TripHistoryClearView(APIView):
+    """Clear all trip history entries."""
+
+    def delete(self, request):
+        deleted_count, _ = TripHistory.objects.all().delete()
+        return Response({"deleted": deleted_count}, status=status.HTTP_200_OK)

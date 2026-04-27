@@ -1,8 +1,8 @@
-export default function Sidebar({ activeView, onNavigate, mobileOpen }) {
+export default function Sidebar({ activeView, onNavigate, mobileOpen, theme, onThemeToggle }) {
   const navItems = [
-    { id: 'map', icon: '🗺️', label: 'Route Planner' },
-    { id: 'history', icon: '📋', label: 'Trip History' },
-    { id: 'stations', icon: '⚡', label: 'Charging Stations' },
+    { id: 'map', icon: 'RP', label: 'Route Planner' },
+    { id: 'history', icon: 'TH', label: 'Trip History' },
+    { id: 'stations', icon: 'CS', label: 'Charging Stations' },
   ];
 
   return (
@@ -10,7 +10,7 @@ export default function Sidebar({ activeView, onNavigate, mobileOpen }) {
       {/* Brand */}
       <div className="sidebar-brand">
         <div className="sidebar-brand-logo">
-          <div className="sidebar-brand-icon">⚡</div>
+          <div className="sidebar-brand-icon">EV</div>
           <div className="sidebar-brand-text">
             <span className="sidebar-brand-title">EV Route</span>
             <span className="sidebar-brand-subtitle">Smart Planner</span>
@@ -39,6 +39,17 @@ export default function Sidebar({ activeView, onNavigate, mobileOpen }) {
           <span className="status-dot"></span>
           <span>Backend Connected</span>
         </div>
+        <button
+          type="button"
+          className="theme-toggle"
+          onClick={onThemeToggle}
+          aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+        >
+          <span className="theme-toggle-label">{theme === 'light' ? 'Light' : 'Dark'} mode</span>
+          <span className={`theme-toggle-track ${theme === 'dark' ? 'is-dark' : ''}`}>
+            <span className="theme-toggle-thumb"></span>
+          </span>
+        </button>
       </div>
     </aside>
   );

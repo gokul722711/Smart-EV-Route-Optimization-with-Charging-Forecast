@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import './App.css';
 import Sidebar from './components/Sidebar';
 import MapView from './components/MapView';
@@ -10,6 +10,23 @@ function App() {
   const [activeView, setActiveView] = useState('map');
   const [errors, setErrors] = useState([]);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [theme, setTheme] = useState('light');
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'light' || savedTheme === 'dark') {
+      setTheme(savedTheme);
+      return;
+    }
+
+    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    setTheme(prefersDark ? 'dark' : 'light');
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
 
   const addError = useCallback((message) => {
     const id = Date.now() + Math.random();
@@ -25,6 +42,10 @@ function App() {
     setMobileMenuOpen(false);
   };
 
+  const toggleTheme = useCallback(() => {
+    setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
+  }, []);
+
   return (
     <div className="app-layout">
       {/* Mobile Header */}
@@ -32,7 +53,7 @@ function App() {
         <button className="mobile-menu-btn" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
           ☰
         </button>
-        <span style={{ fontWeight: 700, fontSize: 'var(--font-base)' }}>⚡ EV Route Planner</span>
+        <span style={{ fontWeight: 700, fontSize: 'var(--font-base)' }}>EV Route Planner</span>
       </div>
 
       {/* Mobile Overlay */}
@@ -41,11 +62,17 @@ function App() {
       )}
 
       {/* Sidebar */}
-      <Sidebar activeView={activeView} onNavigate={handleNavigate} mobileOpen={mobileMenuOpen} />
+      <Sidebar
+        activeView={activeView}
+        onNavigate={handleNavigate}
+        mobileOpen={mobileMenuOpen}
+        theme={theme}
+        onThemeToggle={toggleTheme}
+      />
 
       {/* Main Content */}
       <main className="main-content">
-        {activeView === 'map' && <MapView onError={addError} />}
+        {activeView === 'map' && <MapView onError={addError} theme={theme} />}
         {activeView === 'history' && <TripHistory onError={addError} />}
         {activeView === 'stations' && <StationList onError={addError} />}
       </main>

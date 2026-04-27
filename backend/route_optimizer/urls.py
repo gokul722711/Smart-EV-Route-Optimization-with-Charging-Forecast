@@ -4,6 +4,7 @@ from .views import (
     VehicleListView,
     ChargingStationListView,
     TripHistoryListView,
+    TripHistoryClearView,
 )
 
 urlpatterns = [
@@ -11,4 +12,5 @@ urlpatterns = [
     path("vehicles/", VehicleListView.as_view(), name="vehicle-list"),
     path("stations/", ChargingStationListView.as_view(), name="station-list"),
     path("trips/", TripHistoryListView.as_view(), name="trip-history"),
+    path("trips/clear/", TripHistoryClearView.as_view(), name="trip-history-clear"),
 ]

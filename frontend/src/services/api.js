@@ -23,3 +23,8 @@ export const getTripHistory = async () => {
   const response = await API.get('/trips/');
   return response.data;
 };
+
+export const clearTripHistory = async () => {
+  const response = await API.delete('/trips/clear/');
+  return response.data;
+};

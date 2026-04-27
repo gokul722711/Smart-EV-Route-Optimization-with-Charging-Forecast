@@ -34,8 +34,8 @@ const sourceIcon = new L.DivIcon({
   className: '',
   html: `<div style="
     width:28px;height:28px;border-radius:50%;
-    background:linear-gradient(135deg,#3b82f6,#2563eb);
-    border:3px solid #fff;box-shadow:0 0 12px rgba(59,130,246,0.6);
+    background:linear-gradient(135deg,#176d5d,#0f5b4c);
+    border:3px solid #fff;box-shadow:0 0 12px rgba(22,111,92,0.5);
     display:flex;align-items:center;justify-content:center;
     font-size:12px;color:white;font-weight:700;
   ">A</div>`,
@@ -47,8 +47,8 @@ const destIcon = new L.DivIcon({
   className: '',
   html: `<div style="
     width:28px;height:28px;border-radius:50%;
-    background:linear-gradient(135deg,#ef4444,#dc2626);
-    border:3px solid #fff;box-shadow:0 0 12px rgba(239,68,68,0.6);
+    background:linear-gradient(135deg,#9a4238,#803328);
+    border:3px solid #fff;box-shadow:0 0 12px rgba(154,66,56,0.45);
     display:flex;align-items:center;justify-content:center;
     font-size:12px;color:white;font-weight:700;
   ">B</div>`,
@@ -63,8 +63,8 @@ const chargingIcon = new L.DivIcon({
     background:linear-gradient(135deg,#10b981,#059669);
     border:3px solid #fff;box-shadow:0 0 14px rgba(16,185,129,0.5);
     display:flex;align-items:center;justify-content:center;
-    font-size:14px;
-  ">⚡</div>`,
+    font-size:12px;color:#ffffff;font-weight:700;
+  ">C</div>`,
   iconSize: [30, 30],
   iconAnchor: [15, 15],
 });
@@ -98,9 +98,17 @@ function FitBounds({ positions }) {
   return null;
 }
 
-export default function MapView({ onError }) {
+export default function MapView({ onError, theme = 'light' }) {
   const [source, setSource] = useState(null);
   const [destination, setDestination] = useState(null);
+  const [sourceQuery, setSourceQuery] = useState('');
+  const [destinationQuery, setDestinationQuery] = useState('');
+  const [searchingSource, setSearchingSource] = useState(false);
+  const [searchingDestination, setSearchingDestination] = useState(false);
+  const [sourceSuggestions, setSourceSuggestions] = useState([]);
+  const [destinationSuggestions, setDestinationSuggestions] = useState([]);
+  const [showSourceSuggestions, setShowSourceSuggestions] = useState(false);
+  const [showDestinationSuggestions, setShowDestinationSuggestions] = useState(false);
   const [routeData, setRouteData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [vehicles, setVehicles] = useState([]);
@@ -183,7 +191,160 @@ export default function MapView({ onError }) {
     setSource(null);
     setDestination(null);
     setRouteData(null);
+    setSourceQuery('');
+    setDestinationQuery('');
   };
+
+  const geocodeLocation = useCallback(async (query) => {
+    const encoded = encodeURIComponent(query.trim());
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encoded}`
+    );
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch location details.');
+    }
+
+    const results = await response.json();
+    if (!results.length) {
+      throw new Error('No location found for this search.');
+    }
+
+    const best = results[0];
+    return [parseFloat(best.lat), parseFloat(best.lon)];
+  }, []);
+
+  const fetchLocationSuggestions = useCallback(async (query) => {
+    const encoded = encodeURIComponent(query.trim());
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&limit=6&q=${encoded}`
+    );
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch location suggestions.');
+    }
+
+    const results = await response.json();
+    return results.map((item) => ({
+      label: item.display_name,
+      lat: parseFloat(item.lat),
+      lon: parseFloat(item.lon),
+    }));
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    if (sourceQuery.trim().length < 3) {
+      setSourceSuggestions([]);
+      return undefined;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        const suggestions = await fetchLocationSuggestions(sourceQuery);
+        if (active) {
+          setSourceSuggestions(suggestions);
+        }
+      } catch {
+        if (active) {
+          setSourceSuggestions([]);
+        }
+      }
+    }, 250);
+
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [sourceQuery, fetchLocationSuggestions]);
+
+  useEffect(() => {
+    let active = true;
+    if (destinationQuery.trim().length < 3) {
+      setDestinationSuggestions([]);
+      return undefined;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        const suggestions = await fetchLocationSuggestions(destinationQuery);
+        if (active) {
+          setDestinationSuggestions(suggestions);
+        }
+      } catch {
+        if (active) {
+          setDestinationSuggestions([]);
+        }
+      }
+    }, 250);
+
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [destinationQuery, fetchLocationSuggestions]);
+
+  const applySourceSuggestion = useCallback((suggestion) => {
+    setSource([suggestion.lat, suggestion.lon]);
+    setSourceQuery(suggestion.label);
+    setSourceSuggestions([]);
+    setShowSourceSuggestions(false);
+  }, []);
+
+  const applyDestinationSuggestion = useCallback((suggestion) => {
+    setDestination([suggestion.lat, suggestion.lon]);
+    setDestinationQuery(suggestion.label);
+    setDestinationSuggestions([]);
+    setShowDestinationSuggestions(false);
+  }, []);
+
+  const handleSearchSource = useCallback(async () => {
+    if (!sourceQuery.trim()) {
+      onError('Please enter a source location to search.');
+      return;
+    }
+
+    if (sourceSuggestions.length > 0) {
+      applySourceSuggestion(sourceSuggestions[0]);
+      return;
+    }
+
+    try {
+      setSearchingSource(true);
+      const coords = await geocodeLocation(sourceQuery);
+      setSource(coords);
+      setSourceSuggestions([]);
+      setShowSourceSuggestions(false);
+    } catch (err) {
+      onError(err.message || 'Unable to search source location.');
+    } finally {
+      setSearchingSource(false);
+    }
+  }, [sourceQuery, sourceSuggestions, applySourceSuggestion, geocodeLocation, onError]);
+
+  const handleSearchDestination = useCallback(async () => {
+    if (!destinationQuery.trim()) {
+      onError('Please enter a destination location to search.');
+      return;
+    }
+
+    if (destinationSuggestions.length > 0) {
+      applyDestinationSuggestion(destinationSuggestions[0]);
+      return;
+    }
+
+    try {
+      setSearchingDestination(true);
+      const coords = await geocodeLocation(destinationQuery);
+      setDestination(coords);
+      setDestinationSuggestions([]);
+      setShowDestinationSuggestions(false);
+    } catch (err) {
+      onError(err.message || 'Unable to search destination location.');
+    } finally {
+      setSearchingDestination(false);
+    }
+  }, [destinationQuery, destinationSuggestions, applyDestinationSuggestion, geocodeLocation, onError]);
 
   // Battery color
   const batteryColor =
@@ -192,8 +353,8 @@ export default function MapView({ onError }) {
 
   // Instructions text
   const getInstructionText = () => {
-    if (!source) return 'Click on the map to set your starting point';
-    if (!destination) return 'Click on the map to set your destination';
+    if (!source) return 'Click on the map or search to set your starting point';
+    if (!destination) return 'Click on the map or search to set your destination';
     return 'Click anywhere to set a new route';
   };
 
@@ -208,7 +369,20 @@ export default function MapView({ onError }) {
       >
         <TileLayer
           attribution="&copy; CartoDB"
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+          url={
+            theme === 'dark'
+              ? 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png'
+              : 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png'
+          }
+        />
+        <TileLayer
+          attribution="&copy; CartoDB"
+          url={
+            theme === 'dark'
+              ? 'https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png'
+              : 'https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png'
+          }
+          pane="overlayPane"
         />
 
         <LocationSelector
@@ -223,7 +397,7 @@ export default function MapView({ onError }) {
         {source && (
           <Marker position={source} icon={sourceIcon}>
             <Popup>
-              <strong>📍 Start Point</strong><br />
+              <strong>Start Point</strong><br />
               {source[0].toFixed(4)}°, {source[1].toFixed(4)}°
             </Popup>
           </Marker>
@@ -232,7 +406,7 @@ export default function MapView({ onError }) {
         {destination && (
           <Marker position={destination} icon={destIcon}>
             <Popup>
-              <strong>🏁 Destination</strong><br />
+              <strong>Destination</strong><br />
               {destination[0].toFixed(4)}°, {destination[1].toFixed(4)}°
             </Popup>
           </Marker>
@@ -243,9 +417,9 @@ export default function MapView({ onError }) {
             <Polyline
               positions={routeCoordinates}
               pathOptions={{
-                color: '#3b82f6',
+                color: '#0f5b4c',
                 weight: 5,
-                opacity: 0.8,
+                opacity: 0.86,
                 lineCap: 'round',
                 lineJoin: 'round',
               }}
@@ -253,9 +427,9 @@ export default function MapView({ onError }) {
             <Polyline
               positions={routeCoordinates}
               pathOptions={{
-                color: '#93c5fd',
+                color: '#7ca99f',
                 weight: 2,
-                opacity: 0.4,
+                opacity: 0.5,
                 dashArray: '8, 12',
               }}
             />
@@ -272,7 +446,7 @@ export default function MapView({ onError }) {
           return (
             <Marker key={index} position={[lat, lon]} icon={chargingIcon}>
               <Popup>
-                <strong>⚡ Charging Stop #{index + 1}</strong><br />
+                <strong>Charging Stop #{index + 1}</strong><br />
                 Station: {stop.node}<br />
                 Battery after: {stop.battery_after_charge} km range
               </Popup>
@@ -296,7 +470,101 @@ export default function MapView({ onError }) {
         {/* Vehicle & Battery Config */}
         <div className="glass-card control-card">
           <div className="control-card-title">
-            <span className="icon">🚗</span> Vehicle Setup
+            <span className="icon">VS</span> Vehicle Setup
+          </div>
+
+          <div className="control-group">
+            <label className="control-label">Source Search</label>
+            <div className="search-row">
+              <div className="search-col">
+                <input
+                  className="input"
+                  type="text"
+                  placeholder="Search source location"
+                  value={sourceQuery}
+                  onChange={(e) => {
+                    setSourceQuery(e.target.value);
+                    setShowSourceSuggestions(true);
+                  }}
+                  onFocus={() => setShowSourceSuggestions(true)}
+                  onBlur={() => {
+                    setTimeout(() => setShowSourceSuggestions(false), 120);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSearchSource();
+                  }}
+                />
+                {showSourceSuggestions && sourceSuggestions.length > 0 && (
+                  <div className="suggestion-list">
+                    {sourceSuggestions.map((suggestion, idx) => (
+                      <button
+                        key={`${suggestion.lat}-${suggestion.lon}-${idx}`}
+                        type="button"
+                        className="suggestion-item"
+                        onMouseDown={() => applySourceSuggestion(suggestion)}
+                      >
+                        {suggestion.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <button
+                type="button"
+                className="btn btn-ghost search-btn"
+                onClick={handleSearchSource}
+                disabled={searchingSource}
+              >
+                {searchingSource ? '...' : 'Set'}
+              </button>
+            </div>
+          </div>
+
+          <div className="control-group">
+            <label className="control-label">Destination Search</label>
+            <div className="search-row">
+              <div className="search-col">
+                <input
+                  className="input"
+                  type="text"
+                  placeholder="Search destination location"
+                  value={destinationQuery}
+                  onChange={(e) => {
+                    setDestinationQuery(e.target.value);
+                    setShowDestinationSuggestions(true);
+                  }}
+                  onFocus={() => setShowDestinationSuggestions(true)}
+                  onBlur={() => {
+                    setTimeout(() => setShowDestinationSuggestions(false), 120);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSearchDestination();
+                  }}
+                />
+                {showDestinationSuggestions && destinationSuggestions.length > 0 && (
+                  <div className="suggestion-list">
+                    {destinationSuggestions.map((suggestion, idx) => (
+                      <button
+                        key={`${suggestion.lat}-${suggestion.lon}-${idx}`}
+                        type="button"
+                        className="suggestion-item"
+                        onMouseDown={() => applyDestinationSuggestion(suggestion)}
+                      >
+                        {suggestion.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <button
+                type="button"
+                className="btn btn-ghost search-btn"
+                onClick={handleSearchDestination}
+                disabled={searchingDestination}
+              >
+                {searchingDestination ? '...' : 'Set'}
+              </button>
+            </div>
           </div>
 
           <div className="control-group">
@@ -352,7 +620,7 @@ export default function MapView({ onError }) {
         {/* Re-route button (shown when route exists) */}
         {routeData && (
           <button className="btn btn-primary" style={{ width: '100%' }} onClick={fetchRoute}>
-            🔄 Recalculate Route
+            Recalculate Route
           </button>
         )}
       </div>
@@ -362,9 +630,9 @@ export default function MapView({ onError }) {
         <div className="route-summary-panel">
           <div className="glass-card route-summary-content">
             <div className="route-summary-header">
-              <h3 className="route-summary-title">🗺️ Route Summary</h3>
+              <h3 className="route-summary-title">Route Summary</h3>
               <button className="btn btn-ghost" onClick={resetRoute} style={{ padding: '6px 12px', fontSize: 'var(--font-xs)' }}>
-                ✕ Clear
+                Clear
               </button>
             </div>
 
@@ -401,7 +669,7 @@ export default function MapView({ onError }) {
                         <div className="segment-item">
                           <div className="segment-dot charge"></div>
                           <div className="segment-info">
-                            <strong>⚡ Charge at {chargeHere.node}</strong>
+                            <strong>Charge at {chargeHere.node}</strong>
                             <div className="segment-meta">
                               Battery → {chargeHere.battery_after_charge} km
                             </div>
