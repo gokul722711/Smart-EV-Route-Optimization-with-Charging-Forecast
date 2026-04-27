@@ -78,3 +78,10 @@ class TripHistoryClearView(APIView):
     def delete(self, request):
         deleted_count, _ = TripHistory.objects.all().delete()
         return Response({"deleted": deleted_count}, status=status.HTTP_200_OK)
+
+
+class HealthCheckView(APIView):
+    """Simple health check endpoint for frontend connectivity status."""
+
+    def get(self, request):
+        return Response({"status": "ok"}, status=status.HTTP_200_OK)

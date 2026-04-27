@@ -28,3 +28,8 @@ export const clearTripHistory = async () => {
   const response = await API.delete('/trips/clear/');
   return response.data;
 };
+
+export const checkBackendHealth = async () => {
+  const response = await API.get('/health/');
+  return response.data;
+};

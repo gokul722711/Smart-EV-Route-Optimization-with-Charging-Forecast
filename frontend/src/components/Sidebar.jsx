@@ -1,4 +1,11 @@
-export default function Sidebar({ activeView, onNavigate, mobileOpen, theme, onThemeToggle }) {
+export default function Sidebar({
+  activeView,
+  onNavigate,
+  mobileOpen,
+  theme,
+  onThemeToggle,
+  backendStatus = 'checking',
+}) {
   const navItems = [
     { id: 'map', icon: 'RP', label: 'Route Planner' },
     { id: 'history', icon: 'TH', label: 'Trip History' },
@@ -36,8 +43,14 @@ export default function Sidebar({ activeView, onNavigate, mobileOpen, theme, onT
       {/* Footer */}
       <div className="sidebar-footer">
         <div className="sidebar-footer-status">
-          <span className="status-dot"></span>
-          <span>Backend Connected</span>
+          <span className={`status-dot ${backendStatus}`}></span>
+          <span>
+            {backendStatus === 'connected'
+              ? 'Backend Connected'
+              : backendStatus === 'disconnected'
+                ? 'Backend Offline'
+                : 'Checking backend...'}
+          </span>
         </div>
         <button
           type="button"

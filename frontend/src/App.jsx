@@ -5,12 +5,14 @@ import MapView from './components/MapView';
 import TripHistory from './components/TripHistory';
 import StationList from './components/StationList';
 import ErrorToast from './components/ErrorToast';
+import { checkBackendHealth } from './services/api';
 
 function App() {
   const [activeView, setActiveView] = useState('map');
   const [errors, setErrors] = useState([]);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [theme, setTheme] = useState('light');
+  const [backendStatus, setBackendStatus] = useState('checking');
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
@@ -46,6 +48,31 @@ function App() {
     setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
   }, []);
 
+  useEffect(() => {
+    let active = true;
+
+    const verifyBackend = async () => {
+      try {
+        await checkBackendHealth();
+        if (active) {
+          setBackendStatus('connected');
+        }
+      } catch {
+        if (active) {
+          setBackendStatus('disconnected');
+        }
+      }
+    };
+
+    verifyBackend();
+    const intervalId = window.setInterval(verifyBackend, 5000);
+
+    return () => {
+      active = false;
+      window.clearInterval(intervalId);
+    };
+  }, []);
+
   return (
     <div className="app-layout">
       {/* Mobile Header */}
@@ -68,6 +95,7 @@ function App() {
         mobileOpen={mobileMenuOpen}
         theme={theme}
         onThemeToggle={toggleTheme}
+        backendStatus={backendStatus}
       />
 
       {/* Main Content */}

@@ -5,6 +5,7 @@ from .views import (
     ChargingStationListView,
     TripHistoryListView,
     TripHistoryClearView,
+    HealthCheckView,
 )
 
 urlpatterns = [
@@ -13,4 +14,5 @@ urlpatterns = [
     path("stations/", ChargingStationListView.as_view(), name="station-list"),
     path("trips/", TripHistoryListView.as_view(), name="trip-history"),
     path("trips/clear/", TripHistoryClearView.as_view(), name="trip-history-clear"),
+    path("health/", HealthCheckView.as_view(), name="health-check"),
 ]
