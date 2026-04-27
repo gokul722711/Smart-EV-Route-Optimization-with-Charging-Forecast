@@ -12,6 +12,15 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { optimizeRoute, getVehicles } from '../services/api';
 
+const formatTime = (totalMinutes) => {
+  if (!totalMinutes) return '0 mins';
+  const hrs = Math.floor(totalMinutes / 60);
+  const mins = Math.round(totalMinutes % 60);
+  if (hrs > 0) {
+    return `${hrs} hrs ${mins} mins`;
+  }
+  return `${mins} mins`;
+};
 // Fix Leaflet marker icons
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -179,7 +188,7 @@ export default function MapView({ onError }) {
   // Battery color
   const batteryColor =
     battery > 60 ? '#10b981' :
-    battery > 30 ? '#f59e0b' : '#ef4444';
+      battery > 30 ? '#f59e0b' : '#ef4444';
 
   // Instructions text
   const getInstructionText = () => {
@@ -361,7 +370,7 @@ export default function MapView({ onError }) {
 
             <div className="route-stats-grid">
               <div className="route-stat-card">
-                <div className="route-stat-value">{routeData.total_time_min} min</div>
+                <div className="route-stat-value">{formatTime(routeData.total_time_min)}</div>
                 <div className="route-stat-label">Total Time</div>
               </div>
               <div className="route-stat-card">
@@ -404,7 +413,7 @@ export default function MapView({ onError }) {
                         <div className="segment-info">
                           <strong>{seg.from} → {seg.to}</strong>
                           <div className="segment-meta">
-                            {seg.distance_km} km · {seg.duration_min} min
+                            {seg.distance_km} km · {formatTime(seg.duration_min)}
                           </div>
                         </div>
                       </div>

@@ -22,6 +22,69 @@ def haversine_distance(lat1, lon1, lat2, lon2):
 
     return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
+
+def _point_to_segment_distance(px, py, ax, ay, bx, by):
+    """
+    Approximate perpendicular distance from point P(px,py)
+    to the line segment A(ax,ay)-B(bx,by), using lat/lon as flat coords.
+    Returns haversine distance to the closest point on the segment.
+    """
+    dx, dy = bx - ax, by - ay
+    if dx == 0 and dy == 0:
+        return haversine_distance(px, py, ax, ay)
+
+    t = max(0, min(1, ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy)))
+    proj_lat = ax + t * dx
+    proj_lon = ay + t * dy
+    return haversine_distance(px, py, proj_lat, proj_lon)
+
+
+def _filter_nearby_stations(source_coords, destination_coords, max_range, max_stations=15):
+    """
+    Pre-filter charging stations to only those within the route corridor.
+    This prevents the A* search from exploring 120+ nodes.
+
+    Strategy:
+    1. Keep stations within (buffer_km) of the source→destination line segment.
+    2. Buffer = max(max_range * 0.6, 50km) to ensure reachable stations are included.
+    3. Cap at max_stations, sorted by distance to the corridor midpoint.
+    """
+    src_lon, src_lat = source_coords
+    dst_lon, dst_lat = destination_coords
+
+    direct_distance = haversine_distance(src_lat, src_lon, dst_lat, dst_lon)
+
+    # Buffer: at least 50km, up to 60% of vehicle range, but not more than
+    # half the trip distance (for short trips, keep a tight corridor)
+    buffer_km = min(
+        max(max_range * 0.6, 50),
+        max(direct_distance * 0.5, 50)
+    )
+
+    stations = ChargingStation.objects.all()
+    candidates = []
+
+    for station in stations:
+        # Distance from station to the source→destination line segment
+        corridor_dist = _point_to_segment_distance(
+            station.latitude, station.longitude,
+            src_lat, src_lon,
+            dst_lat, dst_lon,
+        )
+
+        if corridor_dist <= buffer_km:
+            # Also compute distance from source (for sorting relevance)
+            dist_from_src = haversine_distance(
+                station.latitude, station.longitude, src_lat, src_lon
+            )
+            candidates.append((station, corridor_dist, dist_from_src))
+
+    # Sort by corridor distance (closest to the route first), then cap
+    candidates.sort(key=lambda x: x[1])
+
+    return [c[0] for c in candidates[:max_stations]]
+
+
 def optimize_route(
     source_coords: tuple,
     destination_coords: tuple,
@@ -41,18 +104,23 @@ def optimize_route(
         "destination": destination_coords,
     }
 
-    stations = ChargingStation.objects.all()
+    # Pre-filter: only stations near the route corridor (max 15)
+    nearby_stations = _filter_nearby_stations(
+        source_coords, destination_coords, max_range
+    )
 
-    for station in stations:
+    # Build a power lookup dict to avoid repeated DB queries during search
+    charger_power_map = {}
+    for station in nearby_stations:
         nodes[station.name] = (station.longitude, station.latitude)
+        charger_power_map[station.name] = station.power_kw
 
     def get_distance(a, b):
         route = get_route(a, b)
         return route["distance_km"], route["duration_min"]
 
     def get_charger_power(node_name):
-        station = ChargingStation.objects.filter(name=node_name).first()
-        return station.power_kw if station else 1
+        return charger_power_map.get(node_name, 1)
 
     dest_lon, dest_lat = destination_coords
 
